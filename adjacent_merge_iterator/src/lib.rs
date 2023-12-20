@@ -1,3 +1,5 @@
+// cSpell:words peekable itertools jodel
+
 pub struct AdjacentMerge<I: Iterator, V, B, P>
 where
     B: Fn(&V, &V) -> Option<V>,
@@ -62,7 +64,77 @@ pub trait AdjacentMergeIterator {
 
 impl<Iter, TheItem> AdjacentMergeIterator for Iter
 where
-    Iter: Clone + Iterator<Item = TheItem>,
+    Iter: Iterator<Item = TheItem>,
 {
     type Item = TheItem;
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rstest::*;
+    use itertools::Itertools;
+
+    #[test]
+    fn compare_to_unique() {
+        let input = vec![
+            "asdf".to_string(),
+            "asdf".to_string(),
+            "asdf".to_string(),
+            "jodel".to_string(),
+            "asdf".to_string(),
+            "jodel".to_string(),
+            "1234".to_string(),
+            "asdf".to_string(),
+            "1234".to_string(),
+            "1234".to_string(),
+            "12345".to_string(),
+        ];
+
+        let unique_output = input
+            .clone()
+            .iter()
+            .unique()
+            .map(|s| -> String { s.to_string() })
+            .sorted()
+            .collect::<Vec<String>>();
+        let adjacent_output = input
+            .iter()
+            .sorted()
+            .adjacent_merge(
+                |s| -> String { s.to_string() },
+                |l, r| -> Option<String> {
+                    if l == r {
+                        Some(l.clone())
+                    } else {
+                        None
+                    }
+                },
+            )
+            .collect::<Vec<_>>();
+
+        assert_eq!(unique_output, adjacent_output);
+    }
+
+    #[rstest]
+    #[case(vec![])]
+    #[case(vec![42])]
+    #[case(vec![42, 3, 100, 101, 42, 3])]
+    fn edge_cases(#[case] input: Vec<i32>) {
+        let adjacent_output = input
+            .iter()
+            .adjacent_merge(
+                |s| (*s.clone()),
+                |l, r| {
+                    if l == r {
+                        Some(l.clone())
+                    } else {
+                        None
+                    }
+                },
+            )
+            .collect::<Vec<_>>();
+
+        assert_eq!(input, adjacent_output);
+    }
 }
