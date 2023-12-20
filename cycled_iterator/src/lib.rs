@@ -1,6 +1,5 @@
 use std::iter::FusedIterator;
 
-
 // largely taken from the standard library Cycle implementation
 
 #[derive(Clone, Debug)]
@@ -28,17 +27,14 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        match self.iter.next() {
-            None => {
+        self.iter
+            .next()
+            .or_else(|| {
                 self.iter = self.orig.clone();
                 self.cycle += 1;
-                match self.iter.next() {
-                    None => None,
-                    Some(y) => Some((self.cycle, y)),
-                }
-            }
-            Some(y) => Some((self.cycle, y)),
-        }
+                self.iter.next()
+            })
+            .map(|y| (self.cycle, y))
     }
 
     #[inline]
@@ -96,6 +92,7 @@ mod test {
             .enumerate()
             .cycle_counted()
             .enumerate()
+            .take(100)
             .for_each(|(i, (cy, (inner, c)))| {
                 assert_eq!(cy, i);
                 assert_eq!('k', *c);
