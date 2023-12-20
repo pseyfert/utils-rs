@@ -72,8 +72,8 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use rstest::*;
     use itertools::Itertools;
+    use rstest::*;
 
     #[test]
     fn compare_to_unique() {
@@ -136,5 +136,39 @@ mod test {
             .collect::<Vec<_>>();
 
         assert_eq!(input, adjacent_output);
+    }
+
+    #[test]
+    fn merge_ranges() {
+        let data = vec![
+            (1..=5),
+            (5..=9),
+            (20..=22),
+            (34..=39),
+            (35..=42),
+            (37..=41),
+            (37..=45),
+        ];
+        let merged_should = vec![(1..=9), (20..=22), (34..=45)];
+
+        let merged = data
+            .iter()
+            .adjacent_merge(
+                |r| -> std::ops::RangeInclusive<i64> { (*r).clone() },
+                |l, r| {
+                    // I don't want to make this too complicated and assume a <= c
+                    let (a, b) = l.clone().into_inner();
+                    let (c, d) = r.clone().into_inner();
+
+                    if c > b {
+                        None
+                    } else {
+                        Some(a..=std::cmp::max(b, d))
+                    }
+                },
+            )
+            .collect::<Vec<_>>();
+
+        assert_eq!(merged, merged_should);
     }
 }
